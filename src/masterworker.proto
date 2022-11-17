@@ -9,11 +9,11 @@ service worker{
 
 message workRequest{
     string requestType = 1;
-    repeated Shard files = 2;
+    repeated File shard = 2;
     string userID = 3;
     string outputDir = 4;
 }
-message Shard{
+message File{
     string filePath = 1;
     int32 startOffset = 2;
     int32 endOffset = 3;
