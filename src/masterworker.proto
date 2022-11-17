@@ -1,3 +1,25 @@
 syntax = "proto3";
 
 package masterworker;
+
+
+service worker{
+    rpc requestWork (workRequest) returns (workResponse) {}
+}
+
+message workRequest{
+    string requestType = 1;
+    repeated Shard files = 2;
+    string userID = 3;
+    string outputDir = 4;
+}
+message Shard{
+    string filePath = 1;
+    int32 startOffset = 2;
+    int32 endOffset = 3;
+}
+
+message workResponse{
+    bool status = 1;
+    repeated string outputfile = 2;
+}
