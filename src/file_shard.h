@@ -82,13 +82,16 @@ inline bool shard_files(const MapReduceSpec& mr_spec, std::vector<FileShard>& fi
                 current_file.open(mr_spec.input_files[files_index], std::ios::binary);
             }
         }
-        // create offset and add to shard
-        FileOffset file_offset = {
-            mr_spec.input_files[files_index], 
-            start_offset,
-            current_offset
-        };
-        file_shard.file_offsets.push_back(file_offset);
+        // only create another FileOffset if valid file in input_files
+        if (files_index < mr_spec.input_files.size()) {
+            // create offset and add to shard
+            FileOffset file_offset = {
+                mr_spec.input_files[files_index], 
+                start_offset,
+                current_offset
+            };
+            file_shard.file_offsets.push_back(file_offset);
+        }
         fileShards.push_back(file_shard);
     }
     return true;
