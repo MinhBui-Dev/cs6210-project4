@@ -69,7 +69,8 @@ inline bool shard_files(const MapReduceSpec& mr_spec, std::vector<FileShard>& fi
                 FileOffset file_offset = {
                     mr_spec.input_files[files_index],
                     start_offset, 
-                    current_offset
+                    // if last line there is no \n
+                    current_offset - 1
                 };
                 file_shard.file_offsets.push_back(file_offset);
 
