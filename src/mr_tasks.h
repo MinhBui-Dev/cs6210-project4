@@ -2,57 +2,123 @@
 
 #include <string>
 #include <iostream>
+#include <fstream>
+#include <map>
 
 /* CS6210_TASK Implement this data structureas per your implementation.
 		You will need this when your worker is running the map task*/
-struct BaseMapperInternal {
+struct BaseMapperInternal
+{
 
-		/* DON'T change this function's signature */
-		BaseMapperInternal();
+	/* DON'T change this function's signature */
+	BaseMapperInternal();
 
-		/* DON'T change this function's signature */
-		void emit(const std::string& key, const std::string& val);
+	/* DON'T change this function's signature */
+	void emit(const std::string &key, const std::string &val);
 
-		/* NOW you can add below, data members and member functions as per the need of your implementation*/
+	/* NOW you can add below, data members and member functions as per the need of your implementation*/
+	std::string outputDir;
+	std::map<std::string, std::map<std::string, std::string>> keyValMap;
+	int rPartitions;
+	int keycount;
+	std::string getFileName(std::string key);
+	void dumpToFile();
 };
 
-
 /* CS6210_TASK Implement this function */
-inline BaseMapperInternal::BaseMapperInternal() {
-
+inline BaseMapperInternal::BaseMapperInternal()
+{
+	keycount = 0;
 }
 
-
 /* CS6210_TASK Implement this function */
-inline void BaseMapperInternal::emit(const std::string& key, const std::string& val) {
-	std::cout << "Dummy emit by BaseMapperInternal: " << key << ", " << val << std::endl;
+inline void BaseMapperInternal::emit(const std::string &key, const std::string &val)
+{
+	std::string fileName = getFileName(key);
+
+	// Temporarily store the key value pair in the map
+	if (keyValMap.find(fileName) == keyValMap.end())
+	{
+		std::map<std::string, std::string> temp;
+		temp[key] = val;
+		keyValMap[fileName] = temp;
+	}
+	else
+	{
+		if (keyValMap[fileName].find(key) == keyValMap[fileName].end())
+		{
+			keyValMap[fileName][key] = val;
+			keycount++;
+		}
+		else
+		{
+			int count = std::stoi(keyValMap[fileName][key]);
+			keyValMap[fileName][key] = std::to_string(count + std::stoi(val));
+			keycount++;
+		}
+	}
+
+	// Dump the map to file if the number of keys exceeds 100
+	if (keycount == 100)
+	{
+		dumpToFile();
+		keycount = 0;
+	}
 }
 
+// Dump the keyValMap to file
+inline void BaseMapperInternal::dumpToFile()
+{
+	for (auto it = keyValMap.begin(); it != keyValMap.end(); it++)
+	{
+		std::string fileName = it->first;
+		std::map<std::string, std::string> temp = it->second;
+		std::ofstream file;
+		file.open(fileName, std::ofstream::out | std::ofstream::app);
+		for (auto it2 = temp.begin(); it2 != temp.end(); it2++)
+		{
+			file << it2->first << " " << it2->second << std::endl;
+		}
+		file.close();
+	}
+	keyValMap.clear();
+}
 
+// Partitions the key into rPartitions number of files using hash function
+inline std::string BaseMapperInternal::getFileName(std::string key)
+{
+	std::string fileName = outputDir + "/" + std::to_string(std::hash<std::string>{}(key) % rPartitions) + ".txt";
+	return fileName;
+}
 /*-----------------------------------------------------------------------------------------------*/
-
 
 /* CS6210_TASK Implement this data structureas per your implementation.
 		You will need this when your worker is running the reduce task*/
-struct BaseReducerInternal {
+struct BaseReducerInternal
+{
 
-		/* DON'T change this function's signature */
-		BaseReducerInternal();
+	/* DON'T change this function's signature */
+	BaseReducerInternal();
 
-		/* DON'T change this function's signature */
-		void emit(const std::string& key, const std::string& val);
+	/* DON'T change this function's signature */
+	void emit(const std::string &key, const std::string &val);
 
-		/* NOW you can add below, data members and member functions as per the need of your implementation*/
+	/* NOW you can add below, data members and member functions as per the need of your implementation*/
+	std::string outputDir;
+	std::string outputFile;
 };
 
-
 /* CS6210_TASK Implement this function */
-inline BaseReducerInternal::BaseReducerInternal() {
-
+inline BaseReducerInternal::BaseReducerInternal()
+{
 }
 
-
 /* CS6210_TASK Implement this function */
-inline void BaseReducerInternal::emit(const std::string& key, const std::string& val) {
-	std::cout << "Dummy emit by BaseReducerInternal: " << key << ", " << val << std::endl;
+inline void BaseReducerInternal::emit(const std::string &key, const std::string &val)
+{
+	std::ofstream file;
+	std::string fileName = outputDir + "/" + outputFile;
+	file.open(fileName, std::ofstream::out | std::ofstream::app);
+	file << key << " " << val << std::endl;
+	file.close();
 }
