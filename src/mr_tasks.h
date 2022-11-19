@@ -4,6 +4,10 @@
 #include <iostream>
 #include <fstream>
 #include <map>
+#include <chrono>
+#include <sstream>
+#include <iomanip>
+#include <set>
 
 /* CS6210_TASK Implement this data structureas per your implementation.
 		You will need this when your worker is running the map task*/
@@ -18,17 +22,26 @@ struct BaseMapperInternal
 
 	/* NOW you can add below, data members and member functions as per the need of your implementation*/
 	std::string outputDir;
+	std::string timestamp;
 	std::map<std::string, std::map<std::string, std::string>> keyValMap;
+	std::set<std::string> filesList;
 	int rPartitions;
 	int keycount;
 	std::string getFileName(std::string key);
 	void dumpToFile();
+	std::vector<std::string> getListFiles();
 };
 
 /* CS6210_TASK Implement this function */
 inline BaseMapperInternal::BaseMapperInternal()
 {
 	keycount = 0;
+
+	auto current = std::chrono::system_clock::now();
+	std::time_t now = std::chrono::system_clock::to_time_t(current);
+	std::stringstream ss;
+	ss << std::put_time(std::localtime(&now), "%Y-%m-%d-%H-%M-%S");
+	timestamp = ss.str();
 }
 
 /* CS6210_TASK Implement this function */
@@ -42,6 +55,8 @@ inline void BaseMapperInternal::emit(const std::string &key, const std::string &
 		std::map<std::string, std::string> temp;
 		temp[key] = val;
 		keyValMap[fileName] = temp;
+		filesList.insert(fileName)
+
 	}
 	else
 	{
@@ -87,8 +102,13 @@ inline void BaseMapperInternal::dumpToFile()
 // Partitions the key into rPartitions number of files using hash function
 inline std::string BaseMapperInternal::getFileName(std::string key)
 {
-	std::string fileName = outputDir + "/" + std::to_string(std::hash<std::string>{}(key) % rPartitions) + ".txt";
+	std::string fileName = outputDir + "/" + std::to_string(std::hash<std::string>{}(key) % rPartitions) + "_" + timestamp + ".txt";
 	return fileName;
+}
+
+// Returns the list of files created by the mapper
+inline std::set<std::string> getListFiles(){
+	return filesList;
 }
 /*-----------------------------------------------------------------------------------------------*/
 
