@@ -8,6 +8,7 @@
 #include <sstream>
 #include <iomanip>
 #include <set>
+#include <vector>
 
 /* CS6210_TASK Implement this data structureas per your implementation.
 		You will need this when your worker is running the map task*/
@@ -24,7 +25,7 @@ struct BaseMapperInternal
 	std::string outputDir;
 	std::string timestamp;
 	std::map<std::string, std::map<std::string, std::string>> keyValMap;
-	std::set<std::string> filesList;
+	std::set<std::string> filesList; // to keep track of files created without duplicate name
 	int rPartitions;
 	int keycount;
 	std::string getFileName(std::string key);
@@ -55,7 +56,7 @@ inline void BaseMapperInternal::emit(const std::string &key, const std::string &
 		std::map<std::string, std::string> temp;
 		temp[key] = val;
 		keyValMap[fileName] = temp;
-		filesList.insert(fileName)
+		filesList.insert(fileName);
 
 	}
 	else
@@ -107,9 +108,17 @@ inline std::string BaseMapperInternal::getFileName(std::string key)
 }
 
 // Returns the list of files created by the mapper
-inline std::set<std::string> getListFiles(){
-	return filesList;
+inline std::vector<std::string> BaseMapperInternal::getListFiles()
+{
+	std::vector<std::string> files;
+	for (auto file: filesList)
+	{
+		files.push_back(file);
+	}
+
+	return files;
 }
+
 /*-----------------------------------------------------------------------------------------------*/
 
 /* CS6210_TASK Implement this data structureas per your implementation.
