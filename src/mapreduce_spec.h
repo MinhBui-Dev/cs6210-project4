@@ -18,7 +18,7 @@ struct MapReduceSpec {
 };
 
 // Snippet from Stack Overflow https://stackoverflow.com/a/55263720
-std::vector<std::string> split_str(std::string str) {
+inline std::vector<std::string> split_str(std::string str) {
 	std::string tmp; 
 	std::stringstream ss(str);
 	std::vector<std::string> result;
@@ -29,7 +29,7 @@ std::vector<std::string> split_str(std::string str) {
 	return result;
 }
 
-void store_line(std::string key, std::string value, MapReduceSpec& mr_spec) {
+inline void store_line(std::string key, std::string value, MapReduceSpec& mr_spec) {
 	if ("n_workers" == key) {
 		mr_spec.n_workers = stoi(value);
 	} else if ("worker_ipaddr_ports" == key) {
