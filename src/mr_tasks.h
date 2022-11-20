@@ -76,7 +76,7 @@ inline void BaseMapperInternal::emit(const std::string &key, const std::string &
 	}
 
 	// Dump the map to file if the number of keys exceeds 100
-	if (keycount == 100)
+	if (keycount >= 100)
 	{
 		dumpToFile();
 		keycount = 0;
@@ -91,13 +91,8 @@ inline void BaseMapperInternal::dumpToFile()
 		std::string fileName = it->first;
 		std::map<std::string, std::string> temp = it->second;
 		std::ofstream file;
-		std::cout << "Opening file " << fileName << std::endl;
+		mkdir(outputDir.c_str(), 0777);
 		file.open(fileName, std::ofstream::out | std::ofstream::app);
-		if (file.fail()) {
-			if (mkdir(outputDir.c_str(), 0777)) {
-				std::cout << "mkdir failed" << std::endl;
-			}
-		}
 		for (auto it2 = temp.begin(); it2 != temp.end(); it2++)
 		{
 			file << it2->first << " " << it2->second << std::endl;
