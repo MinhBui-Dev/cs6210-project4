@@ -46,8 +46,9 @@ inline bool shard_files(const MapReduceSpec& mr_spec, std::vector<FileShard>& fi
     size_t current_offset = 0;
     std::ifstream current_file(mr_spec.input_files[files_index], std::ios::in);
     std::string line;
+    size_t bytes_read_per_line;
     for (int i = 0; i < number_of_shards; i++) {
-        size_t bytes_read = 0;
+        size_t total_bytes_read = 0;
         size_t start_offset;
         
         // if new shard is at beginning of file, start at 0
@@ -58,11 +59,12 @@ inline bool shard_files(const MapReduceSpec& mr_spec, std::vector<FileShard>& fi
         }
         
         FileShard file_shard;
-        while (bytes_read < mr_spec.map_kilobytes * 1000) {
+        while (total_bytes_read < mr_spec.map_kilobytes * 1000) {
             // read line by line
             std::getline(current_file, line);
-            bytes_read += line.size() + 1;
-            current_offset += bytes_read;
+            bytes_read_per_line = line.size() + 1;
+            current_offset += bytes_read_per_line;
+            total_bytes_read += bytes_read_per_line;
 
             if (current_file.eof()) {
                 // create offset and add to shard
