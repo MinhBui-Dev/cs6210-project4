@@ -55,13 +55,15 @@ class Worker {
 							shard.push_back(file);
 						}
 						if (request_.requesttype() == "MAP") {
-							map(shard);
-							for (auto path : get_mapper_output_paths()) {
+							auto mapper = get_mapper_from_task_factory(request_.userid());
+							map(shard, mapper);
+							for (auto path : get_mapper_output_paths(mapper)) {
 								reply_.add_outputfile(path);
 							}
 						} else {
-							reduce(shard);
-							reply_.add_outputfile(get_reducer_output_path());
+							auto reducer = get_reducer_from_task_factory(request_.userid());
+							reduce(shard, reducer);
+							reply_.add_outputfile(get_reducer_output_path(reducer));
 						}
 
 						reply_.set_status(true);
@@ -86,13 +88,11 @@ class Worker {
 				enum CallStatus { CREATE, PROCESS, FINISH };
 				CallStatus status_;
 
-				std::vector<std::string> get_mapper_output_paths() {
-					auto mapper = get_mapper_from_task_factory(request_.userid());
+				std::vector<std::string> get_mapper_output_paths(std::shared_ptr<BaseMapper> mapper) {
 					return mapper->impl_->getListFiles();
 				}
 
-				std::string get_reducer_output_path() {
-					auto reducer = get_reducer_from_task_factory(request_.userid());
+				std::string get_reducer_output_path(std::shared_ptr<BaseReducer> reducer) {
 					return reducer->impl_->outputDir + "/" + reducer->impl_->outputFile;
 				}
 
@@ -109,8 +109,7 @@ class Worker {
 					return result;
 				}
 
-				void map(std::vector<File> shard) {
-					auto mapper = get_mapper_from_task_factory(request_.userid());
+				void map(std::vector<File> shard, std::shared_ptr<BaseMapper> mapper) {
 					std::ifstream in_file;	
 					std::string line;
 					std::cout << "Starting mapping" << std::endl;
@@ -129,8 +128,7 @@ class Worker {
 					return;
 				}
 
-				void reduce(std::vector<File> shard) {
-					auto reducer = get_reducer_from_task_factory(request_.userid());
+				void reduce(std::vector<File> shard, std::shared_ptr<BaseReducer> reducer) {
 					std::cout << "Starting reducing" << std::endl;
 					std::ifstream in_file(shard[0].filepath(), std::ios::in);	
 					std::string line;
@@ -144,6 +142,7 @@ class Worker {
 								reducer->reduce(key, split_str(value));
 						}
 					}
+					std::cout << "Done reducing" << std::endl;
 				}
 		};
 
