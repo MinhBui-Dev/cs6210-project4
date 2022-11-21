@@ -56,13 +56,16 @@ class Worker {
 						}
 						if (request_.requesttype() == "MAP") {
 							auto mapper = get_mapper_from_task_factory(request_.userid());
-							map(shard, mapper, request_.outputdir());
+							mapper->impl_->outputDir = request_.outputdir();
+							mapper->impl_->rPartitions = request_.rpartitions();
+							map(shard, mapper);
 							for (auto path : get_mapper_output_paths(mapper)) {
 								reply_.add_outputfile(path);
 							}
 						} else {
 							auto reducer = get_reducer_from_task_factory(request_.userid());
-							reduce(shard, reducer, request_.outputdir());
+							reducer->impl_->outputDir = request_.outputdir();
+							reduce(shard, reducer);
 							reply_.add_outputfile(get_reducer_output_path(reducer));
 						}
 
@@ -109,8 +112,7 @@ class Worker {
 					return result;
 				}
 
-				void map(std::vector<File> shard, std::shared_ptr<BaseMapper> mapper, std::string outputDir) {
-					mapper->impl_->outputDir = outputDir;
+				void map(std::vector<File> shard, std::shared_ptr<BaseMapper> mapper) {
 					std::ifstream in_file;	
 					std::string line;
 					std::cout << "Starting mapping" << std::endl;
@@ -129,8 +131,7 @@ class Worker {
 					return;
 				}
 
-				void reduce(std::vector<File> shard, std::shared_ptr<BaseReducer> reducer, std::string outputDir) {
-					reducer->impl_->outputDir = outputDir;
+				void reduce(std::vector<File> shard, std::shared_ptr<BaseReducer> reducer) {
 					std::cout << "Starting reducing" << std::endl;
 					std::ifstream in_file(shard[0].filepath(), std::ios::in);	
 					std::string line;
