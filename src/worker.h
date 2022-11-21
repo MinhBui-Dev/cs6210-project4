@@ -57,7 +57,7 @@ class Worker {
 						if (request_.requesttype() == "MAP") {
 							auto mapper = get_mapper_from_task_factory(request_.userid());
 							mapper->impl_->outputDir = request_.outputdir();
-							mapper->impl_->rPartitions = request_.rpartitions();
+							mapper->impl_->rPartitions = request_.rpartition();
 							map(shard, mapper);
 							for (auto path : get_mapper_output_paths(mapper)) {
 								reply_.add_outputfile(path);
