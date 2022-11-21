@@ -11,8 +11,8 @@ message workRequest{
     string requestType = 1;
     repeated File shard = 2;
     string userID = 3;
-    string outputDir = 4;
-    int32 rPartitions = 5;
+    int32 rPartition = 4;
+    string outputDir = 5;
 }
 message File{
     string filePath = 1;
