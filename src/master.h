@@ -99,19 +99,28 @@ private:
 /* CS6210_TASK: This is all the information your master will get from the framework.
 	You can populate your other class data members here if you want */
 Master::Master(const MapReduceSpec& mr_spec, const std::vector<FileShard>& file_shards) {
+
+	std::cout << "Master constructor called" << std::endl;
 	mrSpec = mr_spec;
 	fileShards = file_shards;
 
+	std::cout << "Number of file shards: " << file_shards.size() << std::endl;
+
+	// initialize worker client objects
 	for (int i = 0; i < mrSpec.worker_ipaddr_ports.size(); i++) {
 		std::string ip = mrSpec.worker_ipaddr_ports[i];
 		workers.push_back(new mapreduceClient(grpc::CreateChannel(ip, grpc::InsecureChannelCredentials())));
 		workerStatuses.push_back(IDLE);
 		availableWorkers++;
 	}
+
+	std::cout << "Available workers: " << availableWorkers << std::endl;
+	std::cout << "Worker statuses: " << workerStatuses.size() << std::endl;
+	// initialize mapStatus and reduceStatus
 	for (int i = 0; i < fileShards.size(); i++) {
 		mapStatus.push_back(0);
 	}
-
+	std::cout << "File shards: " << fileShards.size() << std::endl;
 	for (size_t i = 0; i < mrSpec.n_output_files; i++)
 	{
 		reduceStatus.push_back(0);
@@ -120,29 +129,41 @@ Master::Master(const MapReduceSpec& mr_spec, const std::vector<FileShard>& file_
 }
 int Master::getFreeWorker(){
 	int workerId = -1;
+	std::cout << "Getting free worker" << std::endl;
 	std::unique_lock<std::mutex> lock(nodeMutex);
 	nodeCV.wait(lock, [this] {return availableWorkers > 0;});
 	for (int i = 0; i < workerStatuses.size(); i++)
 	{
 		if (workerStatuses[i] == IDLE)
 		{
+			std::cout << "Worker " << i << " is free" << std::endl;
 			workerId = i;
 			break;
 		}
 	}
 	workerStatuses[workerId] = BUSY;
 	availableWorkers--;
+	std::cout << "returning worker " << workerId << std::endl;
 	return workerId;
 }
 
 void Master::mapNode(int shardId){
+	std::cout << "Map node called for shard: " << shardId << std::endl;
 	int freeWorker = getFreeWorker();
-	workRequest *request;
+	std::cout << "Free worker called: " << freeWorker << std::endl;
+	workRequest *request = new workRequest();
 	request->set_requesttype("MAP");
 	request->set_userid(mrSpec.user_id);
-	request->set_rpartition(mrSpec.n_workers);
 	request->set_outputdir(mrSpec.output_dir);
 	request->set_rpartition(mrSpec.n_output_files);
+
+	std::cout << "Request type: " << request->requesttype() << std::endl;
+	std::cout << "User id: " << request->userid() << std::endl;
+	std::cout << "Rpartition: " << request->rpartition() << std::endl;
+	std::cout << "Output dir: " << request->outputdir() << std::endl;
+
+
+	std::cout << "Number of files: " << fileShards[shardId].file_offsets.size() << std::endl;
 	for (size_t j = 0; j < fileShards[shardId].file_offsets.size(); j++)
 	{
 		File *newFile = request->add_shard();
@@ -155,12 +176,14 @@ void Master::mapNode(int shardId){
 	workResponse response = workers[freeWorker]->requestWork(*request);
 	if (response.status())
 	{
+		std::cout << "Map request successful" << std::endl;
 		std::unique_lock<std::mutex> lock(nodeMutex);
 		workerStatuses[freeWorker] = IDLE;
 		availableWorkers++;
 		nodeCV.notify_one();
 		mapStatus[shardId] = 1;
 		lock.unlock();
+
 
 		std::unique_lock<std::mutex> lock2(intermediateFileMutex);
 		for (size_t i = 0; i < response.outputfile_size(); i++)
@@ -178,7 +201,7 @@ void Master::mapNode(int shardId){
 
 void Master::reduceNode(int reduceId){
 	int freeWorker = getFreeWorker();
-	workRequest *request;
+	workRequest *request = new workRequest();
 	request->set_requesttype("REDUCE");
 	request->set_userid(mrSpec.user_id);
 	request->set_rpartition(mrSpec.n_workers);
@@ -230,7 +253,7 @@ bool Master::run() {
 	waitTillAllWorkersAreDone();
 
 	std::cout << "All workers are done" << std::endl;
-	std::cont << "Num of intermediate files: " << intermediateFiles.size() << std::endl;
+	std::cout << "Num of intermediate files: " << intermediateFiles.size() << std::endl;
 	std::cout << "Num of map statuses: " << mapStatus.size() << std::endl;
 	std::cout << "Num of shards: " << fileShards.size() << std::endl;
 
