@@ -9,7 +9,9 @@
 #include <iomanip>
 #include <set>
 #include <vector>
+#include <sys/types.h>
 #include <sys/stat.h>
+#include <unistd.h>
 
 /* CS6210_TASK Implement this data structureas per your implementation.
 		You will need this when your worker is running the map task*/
@@ -91,7 +93,10 @@ inline void BaseMapperInternal::dumpToFile()
 		std::string fileName = it->first;
 		std::map<std::string, std::string> temp = it->second;
 		std::ofstream file;
-		mkdir(outputDir.c_str(), 0777);
+		struct stat st = {0};
+		if (stat(outputDir.c_str(), &st) == -1) {
+			mkdir(outputDir.c_str(), 0777);
+		}
 		file.open(fileName, std::ofstream::out | std::ofstream::app);
 		for (auto it2 = temp.begin(); it2 != temp.end(); it2++)
 		{
