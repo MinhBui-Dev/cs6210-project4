@@ -33,7 +33,8 @@ class mapreduceClient
 		{
 			workResponse response;
 			ClientContext context;
-			std::chrono::system_clock::time_point deadline = std::chrono::system_clock::now() + std::chrono::milliseconds(1000);
+			
+			std::chrono::system_clock::time_point deadline = std::chrono::system_clock::now() + std::chrono::milliseconds(60000);
 			context.set_deadline(deadline);
 			Status status = stub_->requestWork(&context, request, &response);
 			if (status.ok()) {
@@ -84,7 +85,7 @@ private:
 	std::vector<std::thread> nodeThreads;
 
 	std::mutex intermediateFileMutex;
-	std::vector<std::string> intermediateFiles;
+	std::map<int, std::vector<std::string>> intermediateFiles;
 	
 	int getFreeWorker();
 	void mapNode(int shardId);
@@ -100,11 +101,11 @@ private:
 	You can populate your other class data members here if you want */
 Master::Master(const MapReduceSpec& mr_spec, const std::vector<FileShard>& file_shards) {
 
-	std::cout << "Master constructor called" << std::endl;
+	//std::cout << "Master constructor called" << std::endl;
 	mrSpec = mr_spec;
 	fileShards = file_shards;
 
-	std::cout << "Number of file shards: " << file_shards.size() << std::endl;
+	//std::cout << "Number of file shards: " << file_shards.size() << std::endl;
 
 	// initialize worker client objects
 	for (int i = 0; i < mrSpec.worker_ipaddr_ports.size(); i++) {
@@ -114,13 +115,13 @@ Master::Master(const MapReduceSpec& mr_spec, const std::vector<FileShard>& file_
 		availableWorkers++;
 	}
 
-	std::cout << "Available workers: " << availableWorkers << std::endl;
-	std::cout << "Worker statuses: " << workerStatuses.size() << std::endl;
+	//std::cout << "Available workers: " << availableWorkers << std::endl;
+	//std::cout << "Worker statuses: " << workerStatuses.size() << std::endl;
 	// initialize mapStatus and reduceStatus
 	for (int i = 0; i < fileShards.size(); i++) {
 		mapStatus.push_back(0);
 	}
-	std::cout << "File shards: " << fileShards.size() << std::endl;
+	//std::cout << "File shards: " << fileShards.size() << std::endl;
 	for (size_t i = 0; i < mrSpec.n_output_files; i++)
 	{
 		reduceStatus.push_back(0);
@@ -129,41 +130,41 @@ Master::Master(const MapReduceSpec& mr_spec, const std::vector<FileShard>& file_
 }
 int Master::getFreeWorker(){
 	int workerId = -1;
-	std::cout << "Getting free worker" << std::endl;
+	//std::cout << "Getting free worker" << std::endl;
 	std::unique_lock<std::mutex> lock(nodeMutex);
 	nodeCV.wait(lock, [this] {return availableWorkers > 0;});
 	for (int i = 0; i < workerStatuses.size(); i++)
 	{
 		if (workerStatuses[i] == IDLE)
 		{
-			std::cout << "Worker " << i << " is free" << std::endl;
+			//std::cout << "Worker " << i << " is free" << std::endl;
 			workerId = i;
 			break;
 		}
 	}
 	workerStatuses[workerId] = BUSY;
 	availableWorkers--;
-	std::cout << "returning worker " << workerId << std::endl;
+	//std::cout << "returning worker " << workerId << std::endl;
 	return workerId;
 }
 
 void Master::mapNode(int shardId){
-	std::cout << "Map node called for shard: " << shardId << std::endl;
+	//std::cout << "Map node called for shard: " << shardId << std::endl;
 	int freeWorker = getFreeWorker();
-	std::cout << "Free worker called: " << freeWorker << std::endl;
+	//std::cout << "Free worker called: " << freeWorker << std::endl;
 	workRequest *request = new workRequest();
 	request->set_requesttype("MAP");
 	request->set_userid(mrSpec.user_id);
 	request->set_outputdir(mrSpec.output_dir);
 	request->set_rpartition(mrSpec.n_output_files);
 
-	std::cout << "Request type: " << request->requesttype() << std::endl;
+	/* std::cout << "Request type: " << request->requesttype() << std::endl;
 	std::cout << "User id: " << request->userid() << std::endl;
 	std::cout << "Rpartition: " << request->rpartition() << std::endl;
-	std::cout << "Output dir: " << request->outputdir() << std::endl;
+	std::cout << "Output dir: " << request->outputdir() << std::endl; */
 
 
-	std::cout << "Number of files: " << fileShards[shardId].file_offsets.size() << std::endl;
+	//std::cout << "Number of files: " << fileShards[shardId].file_offsets.size() << std::endl;
 	for (size_t j = 0; j < fileShards[shardId].file_offsets.size(); j++)
 	{
 		File *newFile = request->add_shard();
@@ -184,13 +185,22 @@ void Master::mapNode(int shardId){
 		mapStatus[shardId] = 1;
 		lock.unlock();
 
-
-		std::unique_lock<std::mutex> lock2(intermediateFileMutex);
+		std::vector<std::string> files;
 		for (size_t i = 0; i < response.outputfile_size(); i++)
 		{
-			intermediateFiles.push_back(response.outputfile(i));
+			files.push_back(response.outputfile(i));
 		}
+
+		std::sort(files.begin(), files.end());
 		
+
+		std::unique_lock<std::mutex> lock2(intermediateFileMutex);
+		int i = 0;
+		for (auto file : files)
+		{
+			intermediateFiles[i].push_back(file);
+			i++;
+		}		
 	}
 	else
 	{
@@ -207,12 +217,13 @@ void Master::reduceNode(int reduceId){
 	request->set_rpartition(mrSpec.n_workers);
 	request->set_outputdir(mrSpec.output_dir);
 	request->set_rpartition(mrSpec.n_output_files);
-	for (size_t i = 0; i < intermediateFiles.size(); i++)
+
+	for (size_t i = 0; i < intermediateFiles[reduceId].size(); i++)
 	{
 		File *newFile = request->add_shard();
-		newFile->set_filepath(intermediateFiles[i]);
+		newFile->set_filepath(intermediateFiles[reduceId][i]);
 	}
-
+	
 	workResponse response = workers[freeWorker]->requestWork(*request);
 	if (response.status())
 	{
@@ -257,8 +268,16 @@ bool Master::run() {
 	std::cout << "Num of map statuses: " << mapStatus.size() << std::endl;
 	std::cout << "Num of shards: " << fileShards.size() << std::endl;
 
+	// print intermediate files
+	/* for (int i = 0; i < intermediateFiles.size(); i++) {
+		std::cout << "Intermediate files for reduce " << i << std::endl;
+		for (int j = 0; j < intermediateFiles[i].size(); j++) {
+			std::cout << intermediateFiles[i][j] << std::endl;
+		}
+	} */
+	
 	// send reduce requests to workers
-	for (int i = 0; i < mrSpec.n_output_files; i++) {
+	for (int i = 0; i < intermediateFiles.size(); i++) {
 		nodeThreads.push_back(std::move(std::thread(&Master::reduceNode, this, i)));
 	}
 
