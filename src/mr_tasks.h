@@ -71,6 +71,7 @@ inline void BaseMapperInternal::emit(const std::string &key, const std::string &
 		}
 		else
 		{
+			// TODO: should this be just a string (e.g. 1 1 1)
 			int count = std::stoi(keyValMap[fileName][key]);
 			keyValMap[fileName][key] = std::to_string(count + std::stoi(val));
 			keycount++;
@@ -153,6 +154,10 @@ inline BaseReducerInternal::BaseReducerInternal()
 inline void BaseReducerInternal::emit(const std::string &key, const std::string &val)
 {
 	std::ofstream file;
+	struct stat st = {0};
+	if (stat(outputDir.c_str(), &st) == -1) {
+		mkdir(outputDir.c_str(), 0777);
+	}
 	std::string fileName = outputDir + "/" + outputFile;
 	file.open(fileName, std::ofstream::out | std::ofstream::app);
 	file << key << " " << val << std::endl;
