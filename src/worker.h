@@ -116,6 +116,31 @@ class Worker {
 					return result;
 				}
 
+				std::map<std::string, std::vector<std::string>> read_intermediate_files(std::vector<File> files) {
+					std::map<std::string, std::vector<std::string>> results;
+					std::ifstream in_file;
+					std::string line;
+					for (auto file : files) {
+						in_file.open(file.filepath(), std::ios::in);	
+						std::cout << "Reading " << file.filepath() << std::endl;
+						while (!in_file.eof()) {
+							std::getline(in_file, line);
+							std::istringstream is_line(line);
+							std::string key;
+							if (std::getline(is_line, key, ' ')) {
+								std::string value;
+								if (std::getline(is_line, value)) {
+									results[key].push_back(value);
+								}
+							}
+						}
+						std::cout << "Done reading " << file.filepath() << std::endl;
+						in_file.clear();
+						in_file.close();
+					}
+					return results;
+				}
+
 				void map(std::vector<File> shard, std::shared_ptr<BaseMapper> mapper) {
 					std::ifstream in_file;	
 					std::string line;
@@ -136,24 +161,10 @@ class Worker {
 				}
 
 				void reduce(std::vector<File> shard, std::shared_ptr<BaseReducer> reducer) {
+					std::map<std::string, std::vector<std::string>> map = read_intermediate_files(shard);
 					std::cout << "Starting reducing" << std::endl;
-					std::ifstream in_file;
-					std::string line;
-					for (auto file : shard) {
-						in_file.open(file.filepath(), std::ios::in);	
-						std::cout << "Reducing " << file.filepath() << std::endl;
-						while (!in_file.eof()) {
-							std::getline(in_file, line);
-							std::istringstream is_line(line);
-							std::string key;
-							if (std::getline(is_line, key, ' ')) {
-								std::string value;
-								if (std::getline(is_line, value)) 
-									reducer->reduce(key, split_str(value));
-							}
-						}
-						in_file.clear();
-						in_file.close();
+					for (auto iter = map.begin(); iter != map.end(); ++iter) {
+						reducer->reduce(iter->first, iter->second);
 					}
 					std::cout << "Done reducing" << std::endl;
 				}
