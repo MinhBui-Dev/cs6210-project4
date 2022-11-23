@@ -9,6 +9,9 @@
 #include <iomanip>
 #include <set>
 #include <vector>
+#include <sys/types.h>
+#include <sys/stat.h>
+#include <unistd.h>
 
 /* CS6210_TASK Implement this data structureas per your implementation.
 		You will need this when your worker is running the map task*/
@@ -68,6 +71,7 @@ inline void BaseMapperInternal::emit(const std::string &key, const std::string &
 		}
 		else
 		{
+			// TODO: should this be just a string (e.g. 1 1 1)
 			int count = std::stoi(keyValMap[fileName][key]);
 			keyValMap[fileName][key] = std::to_string(count + std::stoi(val));
 			keycount++;
@@ -75,7 +79,7 @@ inline void BaseMapperInternal::emit(const std::string &key, const std::string &
 	}
 
 	// Dump the map to file if the number of keys exceeds 100
-	if (keycount == 100)
+	if (keycount >= 100)
 	{
 		dumpToFile();
 		keycount = 0;
@@ -90,6 +94,10 @@ inline void BaseMapperInternal::dumpToFile()
 		std::string fileName = it->first;
 		std::map<std::string, std::string> temp = it->second;
 		std::ofstream file;
+		struct stat st = {0};
+		if (stat(outputDir.c_str(), &st) == -1) {
+			mkdir(outputDir.c_str(), 0777);
+		}
 		file.open(fileName, std::ofstream::out | std::ofstream::app);
 		for (auto it2 = temp.begin(); it2 != temp.end(); it2++)
 		{
@@ -135,17 +143,27 @@ struct BaseReducerInternal
 	/* NOW you can add below, data members and member functions as per the need of your implementation*/
 	std::string outputDir;
 	std::string outputFile;
+	std::string timestamp;
 };
 
 /* CS6210_TASK Implement this function */
 inline BaseReducerInternal::BaseReducerInternal()
 {
+	auto current = std::chrono::system_clock::now();
+	std::time_t now = std::chrono::system_clock::to_time_t(current);
+	std::stringstream ss;
+	ss << std::put_time(std::localtime(&now), "%Y-%m-%d-%H-%M-%S");
+	timestamp = ss.str();
 }
 
 /* CS6210_TASK Implement this function */
 inline void BaseReducerInternal::emit(const std::string &key, const std::string &val)
 {
 	std::ofstream file;
+	struct stat st = {0};
+	if (stat(outputDir.c_str(), &st) == -1) {
+		mkdir(outputDir.c_str(), 0777);
+	}
 	std::string fileName = outputDir + "/" + outputFile;
 	file.open(fileName, std::ofstream::out | std::ofstream::app);
 	file << key << " " << val << std::endl;
