@@ -213,6 +213,7 @@ void Master::waitTillAllWorkersAreDone(){
 		nodeThreads[i].join();
 	}
 	nodeThreads.clear();
+	
 }
 
 
@@ -227,6 +228,11 @@ bool Master::run() {
 
 	// wait for all map requests to complete
 	waitTillAllWorkersAreDone();
+
+	std::cout << "All workers are done" << std::endl;
+	std::cont << "Num of intermediate files: " << intermediateFiles.size() << std::endl;
+	std::cout << "Num of map statuses: " << mapStatus.size() << std::endl;
+	std::cout << "Num of shards: " << fileShards.size() << std::endl;
 
 	// send reduce requests to workers
 	for (int i = 0; i < mrSpec.n_output_files; i++) {
