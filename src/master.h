@@ -89,6 +89,7 @@ private:
 	int getFreeWorker();
 	void mapNode(int shardId);
 	void reduceNode(int reduceId);
+	void waitTillAllWorkersAreDone();
 
 
 
@@ -173,7 +174,45 @@ void Master::mapNode(int shardId){
 		workerStatuses[freeWorker] = DOWN;
 		mapNode(shardId);
 	}
+}
 
+void Master::reduceNode(int reduceId){
+	int freeWorker = getFreeWorker();
+	workRequest *request;
+	request->set_requesttype("REDUCE");
+	request->set_userid(mrSpec.user_id);
+	request->set_rpartition(mrSpec.n_workers);
+	request->set_outputdir(mrSpec.output_dir);
+	request->set_rpartition(mrSpec.n_output_files);
+	for (size_t i = 0; i < intermediateFiles.size(); i++)
+	{
+		File *newFile = request->add_shard();
+		newFile->set_filepath(intermediateFiles[i]);
+	}
+
+	workResponse response = workers[freeWorker]->requestWork(*request);
+	if (response.status())
+	{
+		std::unique_lock<std::mutex> lock(nodeMutex);
+		workerStatuses[freeWorker] = IDLE;
+		availableWorkers++;
+		nodeCV.notify_one();
+		reduceStatus[reduceId] = 1;
+		lock.unlock();
+	}
+	else
+	{
+		workerStatuses[freeWorker] = DOWN;
+		reduceNode(reduceId);
+	}
+	
+}
+
+void Master::waitTillAllWorkersAreDone(){
+	for (int i = 0; i < nodeThreads.size(); i++) {
+		nodeThreads[i].join();
+	}
+	nodeThreads.clear();
 }
 
 
@@ -187,9 +226,14 @@ bool Master::run() {
 	}
 
 	// wait for all map requests to complete
-	for (int i = 0; i < nodeThreads.size(); i++) {
-		nodeThreads[i].join();
+	waitTillAllWorkersAreDone();
+
+	// send reduce requests to workers
+	for (int i = 0; i < mrSpec.n_output_files; i++) {
+		nodeThreads.push_back(std::move(std::thread(&Master::reduceNode, this, i)));
 	}
+
+	waitTillAllWorkersAreDone();
 	
 	return true;
 }
