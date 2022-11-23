@@ -143,11 +143,17 @@ struct BaseReducerInternal
 	/* NOW you can add below, data members and member functions as per the need of your implementation*/
 	std::string outputDir;
 	std::string outputFile;
+	std::string timestamp;
 };
 
 /* CS6210_TASK Implement this function */
 inline BaseReducerInternal::BaseReducerInternal()
 {
+	auto current = std::chrono::system_clock::now();
+	std::time_t now = std::chrono::system_clock::to_time_t(current);
+	std::stringstream ss;
+	ss << std::put_time(std::localtime(&now), "%Y-%m-%d-%H-%M-%S");
+	timestamp = ss.str();
 }
 
 /* CS6210_TASK Implement this function */

@@ -37,8 +37,8 @@ class Worker {
 
 		class CallData {
 			public:
-				CallData(worker::AsyncService* service, ServerCompletionQueue* cq)
-					: service_(service), cq_(cq), responder_(&ctx_), status_(CREATE) {
+				CallData(worker::AsyncService* service, ServerCompletionQueue* cq, std::string ip_addr_port)
+					: service_(service), cq_(cq), responder_(&ctx_), status_(CREATE), ip_addr_port_(ip_addr_port) {
 					Proceed();
 				}
 
@@ -48,7 +48,7 @@ class Worker {
 
 						service_->RequestrequestWork(&ctx_, &request_, &responder_, cq_, cq_, this);
 					} else if (status_ == PROCESS) {
-						new CallData(service_, cq_);
+						new CallData(service_, cq_, ip_addr_port_);
 
 						std::vector<File> shard;
 						for (auto file : request_.shard()) {
@@ -65,6 +65,8 @@ class Worker {
 						} else {
 							auto reducer = get_reducer_from_task_factory(request_.userid());
 							reducer->impl_->outputDir = request_.outputdir();
+							auto ip_port = split_str(ip_addr_port_, ':');
+							reducer->impl_->outputFile = ip_port[0] + "_" + ip_port[1] + "_" + reducer->impl_->timestamp + ".txt";
 							reduce(shard, reducer);
 							reply_.add_outputfile(get_reducer_output_path(reducer));
 						}
@@ -82,6 +84,8 @@ class Worker {
 				worker::AsyncService* service_;
 				ServerCompletionQueue* cq_;
 				ServerContext ctx_;
+
+				std::string ip_addr_port_;
 
 				workRequest request_;
 				workResponse reply_;
@@ -101,12 +105,12 @@ class Worker {
 
 
 				// Snippet from Stack Overflow https://stackoverflow.com/a/55263720
-				std::vector<std::string> split_str(std::string str) {
+				std::vector<std::string> split_str(std::string str, char delim) {
 					std::string tmp; 
 					std::stringstream ss(str);
 					std::vector<std::string> result;
 
-					while (std::getline(ss, tmp, ' ')){
+					while (std::getline(ss, tmp, delim)){
 						result.push_back(tmp);
 					}
 					return result;
@@ -156,7 +160,7 @@ class Worker {
 		};
 
 		void HandleRpcs() {
-			new CallData(&service_, cq_.get());
+			new CallData(&service_, cq_.get(), ip_addr_port);
 			void* tag;
 			bool ok;
 			while (true) {
