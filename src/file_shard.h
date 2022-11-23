@@ -20,7 +20,7 @@ struct FileShard {
 };
 
 // Snippet from https://www.tutorialspoint.com/how-can-i-get-a-file-s-size-in-cplusplus
-size_t get_file_size(std::string filepath) {
+inline size_t get_file_size(std::string filepath) {
     std::ifstream in_file(filepath, std::ios::binary);
     in_file.seekg(0, std::ios::end);
     size_t file_size = in_file.tellg();
@@ -28,7 +28,7 @@ size_t get_file_size(std::string filepath) {
     return file_size;
 }
 
-size_t get_input_size(std::vector<std::string> filepaths) {
+inline size_t get_input_size(std::vector<std::string> filepaths) {
     size_t sum = 0;
     for (std::string filepath : filepaths) {
         sum += get_file_size(filepath);
