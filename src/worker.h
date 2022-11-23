@@ -133,17 +133,23 @@ class Worker {
 
 				void reduce(std::vector<File> shard, std::shared_ptr<BaseReducer> reducer) {
 					std::cout << "Starting reducing" << std::endl;
-					std::ifstream in_file(shard[0].filepath(), std::ios::in);	
+					std::ifstream in_file;
 					std::string line;
-					while (!in_file.eof()) {
-						std::getline(in_file, line);
-						std::istringstream is_line(line);
-						std::string key;
-						if (std::getline(is_line, key, ' ')) {
-							std::string value;
-							if (std::getline(is_line, value)) 
-								reducer->reduce(key, split_str(value));
+					for (auto file : shard) {
+						in_file.open(file.filepath(), std::ios::in);	
+						std::cout << "Reducing " << file.filepath() << std::endl;
+						while (!in_file.eof()) {
+							std::getline(in_file, line);
+							std::istringstream is_line(line);
+							std::string key;
+							if (std::getline(is_line, key, ' ')) {
+								std::string value;
+								if (std::getline(is_line, value)) 
+									reducer->reduce(key, split_str(value));
+							}
 						}
+						in_file.clear();
+						in_file.close();
 					}
 					std::cout << "Done reducing" << std::endl;
 				}
