@@ -50,16 +50,16 @@ class Worker {
 					} else if (status_ == PROCESS) {
 						new CallData(service_, cq_, ip_addr_port_);
 
-						std::cout << "Received request from master:" << ip_addr_port_ <<  std::endl;
+						//std::cout << "Received request from master:" << ip_addr_port_ <<  std::endl;
 				
 						std::vector<File> shard;
 						for (auto file : request_.shard()) {
 							shard.push_back(file);
 						}
 
-						std::cout << "shard size: " << shard.size() << std::endl;
+						//std::cout << "shard size: " << shard.size() << std::endl;
 						std::cout << "request type: " << request_.requesttype() << std::endl;
-						std::cout << "user id: " << request_.userid() << std::endl;
+						//std::cout << "user id: " << request_.userid() << std::endl;
 						std::string user_id = request_.userid();
 						if (request_.requesttype() == "MAP") {
 							std::cout << "map request" << std::endl;
@@ -68,9 +68,10 @@ class Worker {
 							
 							mapper->impl_->outputDir = request_.outputdir();
 							mapper->impl_->rPartitions = request_.rpartition();
+							mapper->impl_->localAdd = ip_addr_port_;
 
-							std::cout << "outputDir: " << mapper->impl_->outputDir << std::endl;
-							std::cout << "rPartitions: " << mapper->impl_->rPartitions << std::endl;
+							//std::cout << "outputDir: " << mapper->impl_->outputDir << std::endl;
+							//std::cout << "rPartitions: " << mapper->impl_->rPartitions << std::endl;
 
 							map(shard, mapper);
 
@@ -136,6 +137,7 @@ class Worker {
 					std::map<std::string, std::vector<std::string>> results;
 					std::ifstream in_file;
 					std::string line;
+					std::cout << "---STARTING TO READ INTERMEDIATE FILES---" << std::endl;
 					for (auto file : files) {
 						in_file.open(file.filepath(), std::ios::in);	
 						std::cout << "Reading " << file.filepath() << std::endl;
@@ -179,6 +181,17 @@ class Worker {
 				void reduce(std::vector<File> shard, std::shared_ptr<BaseReducer> reducer) {
 					std::map<std::string, std::vector<std::string>> map = read_intermediate_files(shard);
 					std::cout << "Starting reducing" << std::endl;
+					
+					// print out map values
+					/* for (auto it = map.begin(); it != map.end(); it++) {
+						std::cout << "Key: "<< it->first << "Value: ";
+						for (auto val : it->second) {
+							std::cout << val << " ";
+						}
+						std::cout << std::endl;
+					} */
+
+
 					for (auto iter = map.begin(); iter != map.end(); ++iter) {
 						reducer->reduce(iter->first, iter->second);
 					}
