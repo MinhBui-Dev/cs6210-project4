@@ -170,6 +170,8 @@ class Worker {
 							current_offset += line.size() + 1;
 							mapper->map(line);
 						}
+						in_file.clear();
+						in_file.close();
 						std::cout << "Done mapping " << file.filepath() << std::endl;
 					}
 					mapper->impl_->dumpToFile();
