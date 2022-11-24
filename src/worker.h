@@ -68,7 +68,8 @@ class Worker {
 							
 							mapper->impl_->outputDir = request_.outputdir();
 							mapper->impl_->rPartitions = request_.rpartition();
-							mapper->impl_->localAdd = ip_addr_port_;
+							auto ip_port = split_str(ip_addr_port_, ':');
+							mapper->impl_->localAdd = ip_port[0] + "_" + ip_port[1];
 
 							//std::cout << "outputDir: " << mapper->impl_->outputDir << std::endl;
 							//std::cout << "rPartitions: " << mapper->impl_->rPartitions << std::endl;
