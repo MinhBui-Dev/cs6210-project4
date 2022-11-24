@@ -218,6 +218,7 @@ void Master::reduceNode(int reduceId){
 	request->set_outputdir(mrSpec.output_dir);
 	request->set_rpartition(mrSpec.n_output_files);
 
+	std::cout << "Intermediate file per reducer task: " << intermediateFiles[reduceId].size() << std::endl;
 	for (size_t i = 0; i < intermediateFiles[reduceId].size(); i++)
 	{
 		File *newFile = request->add_shard();
@@ -254,7 +255,7 @@ void Master::waitTillAllWorkersAreDone(){
 /* CS6210_TASK: Here you go. once this function is called you will complete whole map reduce task and return true if succeeded */
 bool Master::run() {
 	// initialize threadpool
-
+	std::cout << "Number of Shards:" << fileShards.size() << std::endl;
 	// send map requests to workers
 	for (int i = 0; i < fileShards.size(); i++) {
 		nodeThreads.push_back(std::move(std::thread(&Master::mapNode, this, i)));
