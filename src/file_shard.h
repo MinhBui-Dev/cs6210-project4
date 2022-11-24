@@ -82,6 +82,7 @@ inline bool shard_files(const MapReduceSpec& mr_spec, std::vector<FileShard>& fi
                 files_index++;
                 current_offset = 0;
                 start_offset = 0;
+                total_bytes_read -= 1; // if eof then no \n
                 current_file.open(mr_spec.input_files[files_index], std::ios::binary);
             }
         }
