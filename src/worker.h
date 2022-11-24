@@ -75,7 +75,6 @@ class Worker {
 
 							map(shard, mapper);
 
-							mapper->impl_->dumpToFile();
 							for (auto path : get_mapper_output_paths(mapper)) {
 								reply_.add_outputfile(path);
 							}
@@ -175,6 +174,7 @@ class Worker {
 						}
 						std::cout << "Done mapping " << file.filepath() << std::endl;
 					}
+					mapper->impl_->dumpToFile();
 					return;
 				}
 
