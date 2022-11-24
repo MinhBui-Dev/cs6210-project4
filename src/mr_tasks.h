@@ -27,6 +27,7 @@ struct BaseMapperInternal
 	/* NOW you can add below, data members and member functions as per the need of your implementation*/
 	std::string outputDir;
 	std::string timestamp;
+	std::string localAdd;
 	std::map<std::string, std::map<std::string, std::string>> keyValMap;
 	std::set<std::string> filesList; // to keep track of files created without duplicate name
 	int rPartitions;
@@ -111,7 +112,7 @@ inline void BaseMapperInternal::dumpToFile()
 // Partitions the key into rPartitions number of files using hash function
 inline std::string BaseMapperInternal::getFileName(std::string key)
 {
-	std::string fileName = outputDir + "/" + std::to_string(std::hash<std::string>{}(key) % rPartitions) + "_" + timestamp + ".txt";
+	std::string fileName = outputDir + "/" + std::to_string(std::hash<std::string>{}(key) % rPartitions) + "_" + timestamp + "_" + localAdd+ ".txt";
 	return fileName;
 }
 
