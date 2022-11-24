@@ -50,20 +50,35 @@ class Worker {
 					} else if (status_ == PROCESS) {
 						new CallData(service_, cq_, ip_addr_port_);
 
+						std::cout << "Received request from master:" << ip_addr_port_ <<  std::endl;
+				
 						std::vector<File> shard;
 						for (auto file : request_.shard()) {
 							shard.push_back(file);
 						}
+
+						std::cout << "shard size: " << shard.size() << std::endl;
+						std::cout << "request type: " << request_.requesttype() << std::endl;
+						std::cout << "user id: " << request_.userid() << std::endl;
+						std::string user_id = request_.userid();
 						if (request_.requesttype() == "MAP") {
-							auto mapper = get_mapper_from_task_factory(request_.userid());
+							std::cout << "map request" << std::endl;
+							
+							auto mapper = get_mapper_from_task_factory("cs6210");
+							
 							mapper->impl_->outputDir = request_.outputdir();
 							mapper->impl_->rPartitions = request_.rpartition();
+
+							std::cout << "outputDir: " << mapper->impl_->outputDir << std::endl;
+							std::cout << "rPartitions: " << mapper->impl_->rPartitions << std::endl;
+
 							map(shard, mapper);
+
 							for (auto path : get_mapper_output_paths(mapper)) {
 								reply_.add_outputfile(path);
 							}
 						} else {
-							auto reducer = get_reducer_from_task_factory(request_.userid());
+							auto reducer = get_reducer_from_task_factory("cs6210");
 							reducer->impl_->outputDir = request_.outputdir();
 							auto ip_port = split_str(ip_addr_port_, ':');
 							reducer->impl_->outputFile = ip_port[0] + "_" + ip_port[1] + "_" + reducer->impl_->timestamp + ".txt";
@@ -157,6 +172,7 @@ class Worker {
 						}
 						std::cout << "Done mapping " << file.filepath() << std::endl;
 					}
+					mapper->impl_->dumpToFile();
 					return;
 				}
 
