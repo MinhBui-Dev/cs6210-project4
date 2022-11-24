@@ -155,7 +155,7 @@ void Master::mapNode(int shardId){
 	workRequest *request = new workRequest();
 	request->set_requesttype("MAP");
 	request->set_userid(mrSpec.user_id);
-	request->set_outputdir(mrSpec.output_dir);
+	request->set_outputdir("intermediate-files");
 	request->set_rpartition(mrSpec.n_output_files);
 
 	/* std::cout << "Request type: " << request->requesttype() << std::endl;
