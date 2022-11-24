@@ -55,7 +55,7 @@ inline bool shard_files(const MapReduceSpec& mr_spec, std::vector<FileShard>& fi
         if (current_offset == 0) {
             start_offset = 0;
         } else { // if new shard is in middle of file, use next value after current_offset
-            start_offset = current_offset + 1;
+            start_offset = current_offset;
         }
         
         FileShard file_shard;
@@ -91,7 +91,7 @@ inline bool shard_files(const MapReduceSpec& mr_spec, std::vector<FileShard>& fi
             FileOffset file_offset = {
                 mr_spec.input_files[files_index], 
                 start_offset,
-                current_offset
+                current_offset - 1
             };
             file_shard.file_offsets.push_back(file_offset);
         }
